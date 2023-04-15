@@ -1,3 +1,9 @@
+/*
+    Document   : DonationManager
+    Created on : 04 16, 23, 3:07:04 AM
+    Author     : Angelo Richter Dela Cruz
+*/
+
 package assetmgt;
 
 import java.sql.*;
@@ -90,8 +96,176 @@ public class DonationManager {
             return 0;
         }
     }
+    
+    public int delete_donation(int donation_id) {
+        try {
+            // Establish database connection
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/HOADB?useTimezone=true&serverTimezone=UTC&user=root&password=12345678");
+            System.out.println("Connection Successful");
+
+            // Prepare SQL statement to delete donation record
+            PreparedStatement pstmt = conn.prepareStatement("DELETE FROM asset_donations WHERE donation_id=?");
+            pstmt.setInt(1, donation_id);
+
+            // Execute SQL statement
+            int rowsAffected = pstmt.executeUpdate();
+
+            // Clean up resources
+            pstmt.close();
+            conn.close();
+
+            return 1;
+
+        } catch (SQLException e) {
+            // Print error message and return 0 for failure
+            System.out.println(e.getMessage());
+            return 0;
+        }
+    }
+
+    public int addDonor(String donorName, String address) {
+        
+        try {
+            // Establish database connection
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/HOADB?useTimezone=true&serverTimezone=UTC&user=root&password=12345678");
+            System.out.println("Connection Successful");
+            
+            PreparedStatement checkStmt = conn.prepareStatement("SELECT COUNT(*) FROM donors WHERE donorname = ?");
+            checkStmt.setString(1, donorName);
+            ResultSet rs = checkStmt.executeQuery();
+            rs.next();
+            int count = rs.getInt(1);
+            if (count > 0) {
+                System.out.println("Donor with name " + donorName + " already exists");
+                return 0;
+            }
+        
+            PreparedStatement pstmt = conn.prepareStatement("INSERT INTO donors (donorname, address) VALUES (?, ?)"); 
+    
+            pstmt.setString(1, donorName);
+            pstmt.setString(2, address);
+            pstmt.executeUpdate();
+            
+            return 1;
+            
+        } catch (SQLException e) {
+            System.err.println(e.getMessage());
+            return 0;
+        }
+    }
+    
+    public int updateDonor(String donorName, String newAddress) {
+        try {
+            // Establish database connection
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/HOADB?useTimezone=true&serverTimezone=UTC&user=root&password=12345678");
+            System.out.println("Connection Successful");
+
+            // Check if donor exists
+            PreparedStatement checkStmt = conn.prepareStatement("SELECT COUNT(*) FROM donors WHERE donorname = ?");
+            checkStmt.setString(1, donorName);
+            ResultSet rs = checkStmt.executeQuery();
+            rs.next();
+            int count = rs.getInt(1);
+            if (count == 0) {
+                return 0;
+            }
+
+            // Update donor's address
+            PreparedStatement updateStmt = conn.prepareStatement("UPDATE donors SET address = ? WHERE donorname = ?");
+            updateStmt.setString(1, newAddress);
+            updateStmt.setString(2, donorName);
+            updateStmt.executeUpdate();
+
+            return 1;
+        } catch (SQLException e) {
+            System.err.println(e.getMessage());
+            return 0;
+        }
+    }
+
+    public int deleteDonor(String donorName) {
+        try {
+            // Establish database connection
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/HOADB?useTimezone=true&serverTimezone=UTC&user=root&password=12345678");
+            System.out.println("Connection Successful");
+
+            // Check if donor exists
+            PreparedStatement checkStmt = conn.prepareStatement("SELECT COUNT(*) FROM donors WHERE donorname = ?");
+            checkStmt.setString(1, donorName);
+            ResultSet rs = checkStmt.executeQuery();
+            rs.next();
+            int count = rs.getInt(1);
+            if (count == 0) {
+                return 0;
+            }
+
+            // Delete donor from database
+            PreparedStatement deleteStmt = conn.prepareStatement("DELETE FROM donors WHERE donorname = ?");
+            deleteStmt.setString(1, donorName);
+            deleteStmt.executeUpdate();
+
+            return 1;
+
+        } catch (SQLException e) {
+            System.err.println(e.getMessage());
+            return 0;
+        }
+    }
 
     
+    public int addPicture(int donationId, String pictureFile) {
+        try {
+            // Establish database connection
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/HOADB?useTimezone=true&serverTimezone=UTC&user=root&password=12345678");
+
+            // Check if picture already exists
+            PreparedStatement checkStmt = conn.prepareStatement("SELECT * FROM donation_pictures WHERE donation_id = ? AND picturefile = ?");
+            checkStmt.setInt(1, donationId);
+            checkStmt.setString(2, pictureFile);
+            ResultSet resultSet = checkStmt.executeQuery();
+            if (resultSet.next()) {
+                // Picture already exists
+                return 0;
+            }
+
+            // Add picture to database
+            PreparedStatement addStmt = conn.prepareStatement("INSERT INTO donation_pictures (donation_id, picturefile) VALUES (?, ?)");
+            addStmt.setInt(1, donationId);
+            addStmt.setString(2, pictureFile);
+            addStmt.executeUpdate();
+
+            return 1;
+        } catch (SQLException e) {
+            System.err.println(e.getMessage());
+            return 0;
+        }
+    }
+    
+    public ArrayList<Integer> getDonationIDs() {
+        ArrayList<Integer> donationIDs = new ArrayList<>();
+
+        try {
+            // Establish database connection
+            Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/HOADB?useTimezone=true&serverTimezone=UTC&user=root&password=12345678");
+            System.out.println("Connection Successful");
+
+            // Execute SQL query
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT DISTINCT donation_id FROM asset_donations");
+
+            // Process the result set
+            while (rs.next()) {
+                donationIDs.add(rs.getInt("donation_id"));
+            }
+
+        } catch (SQLException e) {
+            System.err.println(e.getMessage());
+        }
+
+        return donationIDs;
+    }
+
+
     public int getDonationId() {
         return donation_id;
     }
@@ -390,6 +564,14 @@ public class DonationManager {
         DonationManager donationManager2 = new DonationManager();
         donationManager2.setDonation(donation2);
         donationManager2.update_donation();
+        
+        
+        DonationManager donationManager3 = new DonationManager();
+        
+        //donationManager3.addDonor("Richter Dela Cruz", "Manila");
+        
+        donationManager3.addPicture(6001, "1234");
+        
         */
     }
 }
